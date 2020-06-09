@@ -10,8 +10,8 @@ library(mgcv,lib.loc='~/myRlibs-3.6.2/')
 
 
 
-# load state population data
-state_pops = read.csv('state_pops.csv',header=F)
+# load state population data <- Where is this file supposed to run from? code or data?
+state_pops = read.csv('../data/state_pops.csv',header=F)
 state_pops = state_pops[which(rowSums(is.na(state_pops[,2:3]))<2),]
 
 # models that need to be run
@@ -40,6 +40,37 @@ if(MOBILITY%in%(4:9)){
 }
 pop = state_pops[state_pops[,1]==STATE,4]
 
+## Format data to get incidence data
+d = subset(d, !(measure %in% c("deaths_increase", "positive_increase", "negative_increase", "total_test_results_increase")))
+
+## Deaths incidence
+deaths_df = subset(d, measure == "death")
+deaths_df = deaths_df[order(deaths_df$date),]
+deaths_df$count = c(deaths_df$count[1], diff(deaths_df$count))
+deaths_df$measure = "deaths_increase"
+deaths_df$measure_label = "Deaths_Increase"
+
+## Positive incidence
+pos_df = subset(d, measure == "positive")
+pos_df = pos_df[order(pos_df$date),]
+pos_df$count = c(pos_df$count[1], diff(pos_df$count))
+pos_df$measure = "positive_increase"
+pos_df$measure_label = "Positive_Increase"
+
+
+## Positive incidence
+neg_df = subset(d, measure ==  "negative")
+neg_df = neg_df[order(neg_df$date),]
+neg_df$count = c(neg_df$count[1], diff(neg_df$count))
+neg_df$measure = "negative_increase"
+neg_df$measure_label = "Negative_Increase"
+
+total_df = pos_df
+total_df$count = pos_df$count + neg_df$count
+total_df$measure = "total_test_results_increase"
+total_df$measure_label = "Total_Tests_Increase"
+
+d = rbind(d, deaths_df, pos_df, total_df)
 
 
 # load and format data
