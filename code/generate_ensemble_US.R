@@ -1,30 +1,26 @@
-# read in list of states with model fits
+library(stringr)
+library(tidyverse)
+
+## read in list of states with model fits
 state_pops = read.csv('../data/state_pops.csv',header=F)
 f = list.files('../output/')
 state_list = unique(substr(f,17,18))
+n.metrics <- max(as.numeric(str_extract_all(f,"[0-9]+"))) 
 
 # set up 
-STATE = state_list[1]
-f = list.files('../output/')
-f = f[substr(f,0,3)=='mod']
-f = f[grep(STATE,f)]
-load(paste('../output/',f[1],sep=''))
-deathPreds.array = array(0,c(length(f),nrow(deathPreds),ncol(deathPreds)))
+deathPreds.array = array(0,c(n.metrics,nrow(deathPreds),ncol(deathPreds)))
 
 for(STATE in state_list){
-
   pop = state_pops[state_pops[,1]==STATE,4]
-  
   f = list.files('../output/')
   f = f[substr(f,0,3)=='mod']
   f = f[grep(STATE,f)]
   load(paste('../output/',f[1],sep=''))
-  
   samples.list = list()
   npi.mat = matrix(NA,nrow(df),length(f))
   # deathPreds.array = array(NA,c(length(f),nrow(deathPreds),ncol(deathPreds)))
   deviance = numeric()
-  
+  print(STATE)
   for(ii in 1:length(f)){
     load(paste('../output/',f[ii],sep=''))
     # samples.list[[ii]] = samples[,1:12]
@@ -33,8 +29,7 @@ for(STATE in state_list){
     deathPreds.array[ii,,] = 
       deathPreds.array[ii,,] + ifelse(is.na(deathPreds),0,deathPreds)
     # deviance[ii] = mean(-2*samples[,'Lposterior'])
-  }
-  
+  }  
 }
   
 t = df$doy
@@ -157,5 +152,8 @@ df.forecast.deathCum.weekly.point = data.frame(
 eval(parse(text=paste('
   df.forecast_US = rbind(',paste(ls()[substr(ls(),0,12)=='df.forecast.'],collapse=','),')',sep='')))
 df.forecast_US$location = 'US'
-df.forecast_US$location_name = 'United States'
+df.forecast_US$location_name = 'US'
 
+temp.df <- read.csv(paste0("../forecasts/",max(df$date)+2,"-NotreDame-mobility.csv"))
+write_csv(rbind(df.forecast_US, temp.df),
+          path=paste0('../forecasts/',max(df$date)+2,'-NotreDame-mobility.csv'))

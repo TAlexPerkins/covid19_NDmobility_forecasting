@@ -1,12 +1,12 @@
 # load libraries
 # install.packages('BayesianTools')
-library(BayesianTools,lib.loc='~/myRlibs-3.6.2/')
-# remotes::install_github("kjhealy/covdata",lib='~/myRlibs-3.6.2/')
-library(covdata,lib.loc='~/myRlibs-3.6.2/')
+library(BayesianTools)
+# remotes::install_github("kjhealy/covdata")
+library(covdata)
 # install.packages('foreach')
-library(foreach,lib.loc='~/myRlibs-3.6.2/')
+library(foreach)
 # install.packages('mgcv')
-library(mgcv,lib.loc='~/myRlibs-3.6.2/')
+library(mgcv)
 
 
 
@@ -409,7 +409,7 @@ if(GO){
   
   # save output
   save(par,samples,t,deathPreds,df,LL,
-       file=paste('model_posterior_',STATE,'_',MOBILITY,'.RData',sep=''))
+       file=paste('../output/model_posterior_',STATE,'_',MOBILITY,'.RData',sep=''))
   
   
   # save(par,samples,t,deathPreds,df,LL,

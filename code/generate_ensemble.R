@@ -190,5 +190,5 @@ df.forecast = left_join(df.forecast, fips, by = "location_name") %>%
 
 
 # save forecast for all states
-save(df.forecast,file='../output/forecast_states_20200601.RData')
-write_csv(df.forecast,path='../forecasts/2020-06-01-NotreDame-mobility.csv')
+save(df.forecast,file='../forecasts/forecast_states_20200601.RData')
+write_csv(df.forecast,path=paste0('../forecasts/',max(df$date)+2'-NotreDame-mobility.csv'))
