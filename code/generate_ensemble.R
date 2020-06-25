@@ -1,4 +1,7 @@
-# read in states that have been processed
+library(tidyverse)
+library(covdata)
+
+## read in states that have been processed
 state_pops = read.csv('../data/state_pops.csv',header=F)
 f = list.files('../output/')
 state_list = unique(substr(f,17,18))
@@ -13,7 +16,7 @@ for(STATE in state_list){
 
   # get state populaltion
   pop = state_pops[state_pops[,1]==STATE,4]
-  
+
   # read in first model fit for that state to know how to set up storage
   f = list.files('../output/')
   f = f[substr(f,0,3)=='mod']
@@ -44,6 +47,12 @@ for(STATE in state_list){
   forecast.date = Sys.Date()
   forecast.row = nrow(df) + as.numeric(forecast.date - max(df$date))
   forecast.day = as.POSIXlt(forecast.date)$wday
+
+  # get deaths in NYT data
+  state_data = nytcovstate %>%
+      filter(state == STATE_NAME)
+  state_deaths = max(state_data$deaths)
+  state_date = max(state_data$date)
     
   # take random draws from mean to obtain posterior predictions
   deathPreds.array = array(
@@ -52,7 +61,7 @@ for(STATE in state_list){
   deathPredsCum.array = deathPreds.array
   for(ii in 1:dim(deathPredsCum.array)[1]){
     for(jj in 1:dim(deathPredsCum.array)[3]){
-      deathPredsCum.array[ii,,jj] = cumsum(deathPredsCum.array[ii,,jj]) - sum(deathPredsCum.array[ii,1:nrow(df),jj]) + sum(df$deaths)
+      deathPredsCum.array[ii,,jj] = cumsum(deathPredsCum.array[ii,,jj]) - sum(deathPredsCum.array[ii,1:(nrow(df) - as.numeric(max(df$date)-state_date)),jj]) + state_deaths
     }
   }
   

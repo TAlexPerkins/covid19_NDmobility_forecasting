@@ -1,5 +1,6 @@
 library(stringr)
 library(tidyverse)
+library(covdata)
 
 ## read in list of states with model fits
 state_pops = read.csv('../data/state_pops.csv',header=F)
@@ -40,7 +41,19 @@ for(STATE in state_list){
       deathPreds.array[ii,,] + ifelse(is.na(deathPreds),0,deathPreds)
     # deviance[ii] = mean(-2*samples[,'Lposterior'])
   }
-  total.deaths <- total.deaths + sum(df$deaths)
+
+  # get state name for writing to file
+  STATE_NAME = as.character(unlist(
+    state_pops[state_pops[,1]==STATE,2:3][
+      which(!is.na(state_pops[state_pops[,1]==STATE,2:3]))][1]))
+
+  # get deaths in NYT data
+  state_data = nytcovstate %>%
+      filter(state == STATE_NAME)
+  state_deaths = max(state_data$deaths)
+  state_date = max(state_data$date)
+
+  total.deaths <- total.deaths + state_deaths
 }
   
 t = df$doy
@@ -53,7 +66,7 @@ deathPreds.array = array(
 deathPredsCum.array = deathPreds.array
 for(ii in 1:dim(deathPredsCum.array)[1]){
   for(jj in 1:dim(deathPredsCum.array)[3]){
-    deathPredsCum.array[ii,,jj] = cumsum(deathPredsCum.array[ii,,jj]) - sum(deathPredsCum.array[ii,1:nrow(df),jj]) + total.deaths
+    deathPredsCum.array[ii,,jj] = cumsum(deathPredsCum.array[ii,,jj]) - sum(deathPredsCum.array[ii,1:(nrow(df) - as.numeric(max(df$date)-state_date)),jj]) + total.deaths
   }
 }
 

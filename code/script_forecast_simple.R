@@ -13,8 +13,8 @@ library(mgcv)
 # load state population data <- Where is this file supposed to run from? code or data?
 state_pops = read.csv('../data/state_pops.csv',header=F,  stringsAsFactors = F)
 state_pops = state_pops[which(rowSums(is.na(state_pops[,2:3]))<2),]
-state_pops[which(state_pops$V2 == 'New Jersy'),]$V2 = 'New Jersey'
-state_pops[which(state_pops$V3 == 'New Jersy'),]$V3 = 'New Jersey'
+## state_pops[which(state_pops$V2 == 'New Jersy'),]$V2 = 'New Jersey'
+## state_pops[which(state_pops$V3 == 'New Jersy'),]$V3 = 'New Jersey'
 
 # models that need to be run
 models = expand.grid(
@@ -23,13 +23,14 @@ models = expand.grid(
 
 # select which model
 args = commandArgs(trailingOnly=TRUE)
+print(args)
 STATE = models[as.numeric(args[1]),'STATE']
 MOBILITY = models[as.numeric(args[1]),'MOBILITY']
 
 mobility_types = c('driving', 'transit', 'walking', 'grocery', 'parks', 
                    'residential', 'retail', 'transit', 'workplaces')
 
-
+print(STATE)
 print(MOBILITY)
 
 # subset to the desired state
@@ -107,9 +108,12 @@ if(GO){
   df$ttot = rep(NA, nrow(df))
   for(dd in unique(d$date)){
     ddd = which(df$date==dd)
-    df$deaths[ddd] = pmax(0,subset(d, measure == 'death_increase' & date == dd)$count)
-    df$tpos[ddd] = pmax(0,subset(d, measure == 'positive_increase' & date == dd)$count)
-    df$ttot[ddd] = pmax(0,subset(d, measure=='total_test_results_increase'&date==dd)$count)
+    death.temp = subset(d, measure == 'death_increase' & date == dd)$count
+    pos.temp = subset(d, measure == 'positive_increase' & date == dd)$count
+    tot.temp = subset(d, measure=='total_test_results_increase'&date==dd)$count
+    df$deaths[ddd] = ifelse(death.temp < 0, NA, death.temp)
+    df$tpos[ddd] = ifelse(pos.temp < 0, NA, death.temp)
+    df$ttot[ddd] = ifelse(tot.temp < max(0,pos.temp), NA, death.temp)
     if(MOBILITY==1){
       df$mobility[ddd] =
         mean(subset(a,transportation_type=='driving'&date==dd)$index,na.rm=T)
@@ -140,15 +144,16 @@ if(GO){
     }
   }
   
-  # add a safeguard against positive tests > total tests
-  for(dd in which(!is.na(df$tpos))){
-    if(!is.na(df$tpos[dd] > df$ttot[dd]) & df$tpos[dd] > df$ttot[dd]){
-      df$ttot[dd] = NA
-      df$tpos[dd] = NA
-    }else if(is.na(df$tpos[dd] > df$ttot[dd])){
-      df$ttot[dd] = df$tpos[dd]
-    }
-  }
+  ## # add a safeguard against positive tests > total tests
+  ## for(dd in which(!is.na(df$tpos))){
+  ##   if(!is.na(df$ttot[dd]) & df$tpos[dd] > df$ttot[dd]){
+  ##     df$ttot[dd] = NA
+  ##     df$tpos[dd] = NA
+  ##   }
+  ##   }else if(is.na(df$ttot[dd])){
+  ##     df$ttot[dd] = df$tpos[dd]
+  ##   }
+  ## }
   
   df$deaths[is.na(df$deaths)] = 0
   df$mobility[
