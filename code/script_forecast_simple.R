@@ -1,12 +1,9 @@
-# load libraries
-# install.packages('BayesianTools')
+## load libraries
 library(BayesianTools)
-# remotes::install_github("kjhealy/covdata")
-library(covdata)
-# install.packages('foreach')
 library(foreach)
-# install.packages('mgcv')
 library(mgcv)
+remotes::install_github("kjhealy/covdata")
+library(covdata)
 
 
 
