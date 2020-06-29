@@ -2,7 +2,7 @@
 library(BayesianTools)
 library(foreach)
 library(mgcv)
-remotes::install_github("kjhealy/covdata")
+## remotes::install_github("kjhealy/covdata")
 library(covdata)
 
 
