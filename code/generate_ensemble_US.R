@@ -72,51 +72,51 @@ for(ii in 1:dim(deathPredsCum.array)[1]){
 
 quantiles = c(0.01,0.025,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.975,0.99)
 
-daily.quantiles = as.numeric(apply(deathPreds.array,2,function(x)
-  quantile(x,quantiles))[,forecast.row+1:42])
-df.forecast.deathInc.daily.quantile = data.frame(
-  forecast_date = forecast.date,
-  target = rep(paste(1:42,' day ahead inc death',sep=''),each=length(quantiles)),
-  location = NA,
-  location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
-  target_end_date = rep(forecast.date+1:42,each=length(quantiles)),
-  type = 'quantile',
-  quantile = quantiles,
-  value = daily.quantiles)
+## daily.quantiles = as.numeric(apply(deathPreds.array,2,function(x)
+##   quantile(x,quantiles))[,forecast.row+1:42])
+## df.forecast.deathInc.daily.quantile = data.frame(
+##   forecast_date = forecast.date,
+##   target = rep(paste(1:42,' day ahead inc death',sep=''),each=length(quantiles)),
+##   location = NA,
+##   location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
+##   target_end_date = rep(forecast.date+1:42,each=length(quantiles)),
+##   type = 'quantile',
+##   quantile = quantiles,
+##   value = daily.quantiles)
 
-daily.points = as.numeric(apply(deathPreds.array,2,mean)[forecast.row+1:42])
-df.forecast.deathInc.daily.point = data.frame(
-  forecast_date = forecast.date,
-  target = paste(1:42,' day ahead inc death',sep=''),
-  location = NA,
-  location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
-  target_end_date = forecast.date+1:42,
-  type = 'point',
-  quantile = NA,
-  value = daily.points)
+## daily.points = as.numeric(apply(deathPreds.array,2,mean)[forecast.row+1:42])
+## df.forecast.deathInc.daily.point = data.frame(
+##   forecast_date = forecast.date,
+##   target = paste(1:42,' day ahead inc death',sep=''),
+##   location = NA,
+##   location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
+##   target_end_date = forecast.date+1:42,
+##   type = 'point',
+##   quantile = NA,
+##   value = daily.points)
 
-daily.quantiles = as.numeric(apply(deathPredsCum.array,2,function(x)
-  quantile(x,quantiles))[,forecast.row+1:42])
-df.forecast.deathCum.daily.quantile = data.frame(
-  forecast_date = forecast.date,
-  target = rep(paste(1:42,' day ahead cum death',sep=''),each=length(quantiles)),
-  location = NA,
-  location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
-  target_end_date = rep(forecast.date+1:42,each=length(quantiles)),
-  type = 'quantile',
-  quantile = quantiles,
-  value = daily.quantiles)
+## daily.quantiles = as.numeric(apply(deathPredsCum.array,2,function(x)
+##   quantile(x,quantiles))[,forecast.row+1:42])
+## df.forecast.deathCum.daily.quantile = data.frame(
+##   forecast_date = forecast.date,
+##   target = rep(paste(1:42,' day ahead cum death',sep=''),each=length(quantiles)),
+##   location = NA,
+##   location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
+##   target_end_date = rep(forecast.date+1:42,each=length(quantiles)),
+##   type = 'quantile',
+##   quantile = quantiles,
+##   value = daily.quantiles)
 
-daily.points = as.numeric(apply(deathPredsCum.array,2,mean)[forecast.row+1:42])
-df.forecast.deathCum.daily.point = data.frame(
-  forecast_date = forecast.date,
-  target = paste(1:42,' day ahead cum death',sep=''),
-  location = NA,
-  location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
-  target_end_date = forecast.date+1:42,
-  type = 'point',
-  quantile = NA,
-  value = daily.points)
+## daily.points = as.numeric(apply(deathPredsCum.array,2,mean)[forecast.row+1:42])
+## df.forecast.deathCum.daily.point = data.frame(
+##   forecast_date = forecast.date,
+##   target = paste(1:42,' day ahead cum death',sep=''),
+##   location = NA,
+##   location_name = as.character(state_pops[state_pops[,1]==STATE,2]),
+##   target_end_date = forecast.date+1:42,
+##   type = 'point',
+##   quantile = NA,
+##   value = daily.points)
 
 
 deathPreds.array.weekly = apply(deathPreds.array,c(1,3),function(x)
@@ -176,7 +176,7 @@ df.forecast.deathCum.weekly.point = data.frame(
 eval(parse(text=paste('
   df.forecast_US = rbind(',paste(ls()[substr(ls(),0,12)=='df.forecast.'],collapse=','),')',sep='')))
 df.forecast_US$location = 'US'
-df.forecast_US$location_name = 'US'
+df.forecast_US$location_name = NULL
 
 load(paste0("../forecasts/forecast_states_",forecast.date,".RData"),verbose=T)
 write_csv(rbind(df.forecast_US, df.forecast),

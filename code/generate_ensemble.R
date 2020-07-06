@@ -70,55 +70,55 @@ for(STATE in state_list){
     0.01,0.025,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,
     0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.975,0.99)
    
-  # prepare quantiles for daily incidence
-  daily.quantiles = as.numeric(apply(deathPreds.array,2,function(x)
-    quantile(x,quantiles))[,forecast.row+(1:42)])
-  df.forecast.deathInc.daily.quantile = data.frame(
-    forecast_date = forecast.date,
-    target = rep(paste(1:42,' day ahead inc death',sep=''),each=length(quantiles)),
-    location = NA,
-    location_name = STATE_NAME,
-    target_end_date = rep(forecast.date+(1:42),each=length(quantiles)),
-    type = 'quantile',
-    quantile = quantiles,
-    value = daily.quantiles)
+  ## # prepare quantiles for daily incidence
+  ## daily.quantiles = as.numeric(apply(deathPreds.array,2,function(x)
+  ##   quantile(x,quantiles))[,forecast.row+(1:42)])
+  ## df.forecast.deathInc.daily.quantile = data.frame(
+  ##   forecast_date = forecast.date,
+  ##   target = rep(paste(1:42,' day ahead inc death',sep=''),each=length(quantiles)),
+  ##   location = NA,
+  ##   location_name = STATE_NAME,
+  ##   target_end_date = rep(forecast.date+(1:42),each=length(quantiles)),
+  ##   type = 'quantile',
+  ##   quantile = quantiles,
+  ##   value = daily.quantiles)
   
-  # prepare point estimates for daily incidence
-  daily.points = as.numeric(apply(deathPreds.array,2,mean)[forecast.row+(1:42)])
-  df.forecast.deathInc.daily.point = data.frame(
-    forecast_date = forecast.date,
-    target = paste(1:42,' day ahead inc death',sep=''),
-    location = NA,
-    location_name = STATE_NAME,
-    target_end_date = forecast.date+(1:42),
-    type = 'point',
-    quantile = NA,
-    value = daily.points)
+  ## # prepare point estimates for daily incidence
+  ## daily.points = as.numeric(apply(deathPreds.array,2,mean)[forecast.row+(1:42)])
+  ## df.forecast.deathInc.daily.point = data.frame(
+  ##   forecast_date = forecast.date,
+  ##   target = paste(1:42,' day ahead inc death',sep=''),
+  ##   location = NA,
+  ##   location_name = STATE_NAME,
+  ##   target_end_date = forecast.date+(1:42),
+  ##   type = 'point',
+  ##   quantile = NA,
+  ##   value = daily.points)
   
-  # prepare quantiles for daily cumulative
-  daily.quantiles = as.numeric(apply(deathPredsCum.array,2,function(x)
-    quantile(x,quantiles))[,forecast.row+(1:42)])
-  df.forecast.deathCum.daily.quantile = data.frame(
-    forecast_date = forecast.date,
-    target = rep(paste(1:42,' day ahead cum death',sep=''),each=length(quantiles)),
-    location = NA,
-    location_name = STATE_NAME,
-    target_end_date = rep(forecast.date+(1:42),each=length(quantiles)),
-    type = 'quantile',
-    quantile = quantiles,
-    value = daily.quantiles)
+  ## # prepare quantiles for daily cumulative
+  ## daily.quantiles = as.numeric(apply(deathPredsCum.array,2,function(x)
+  ##   quantile(x,quantiles))[,forecast.row+(1:42)])
+  ## df.forecast.deathCum.daily.quantile = data.frame(
+  ##   forecast_date = forecast.date,
+  ##   target = rep(paste(1:42,' day ahead cum death',sep=''),each=length(quantiles)),
+  ##   location = NA,
+  ##   location_name = STATE_NAME,
+  ##   target_end_date = rep(forecast.date+(1:42),each=length(quantiles)),
+  ##   type = 'quantile',
+  ##   quantile = quantiles,
+  ##   value = daily.quantiles)
   
-  # prepare point estimates for daily cumulative
-  daily.points = as.numeric(apply(deathPredsCum.array,2,mean)[forecast.row+(1:42)])
-  df.forecast.deathCum.daily.point = data.frame(
-    forecast_date = forecast.date,
-    target = paste(1:42,' day ahead cum death',sep=''),
-    location = NA,
-    location_name = STATE_NAME,
-    target_end_date = forecast.date+(1:42),
-    type = 'point',
-    quantile = NA,
-    value = daily.points)
+  ## # prepare point estimates for daily cumulative
+  ## daily.points = as.numeric(apply(deathPredsCum.array,2,mean)[forecast.row+(1:42)])
+  ## df.forecast.deathCum.daily.point = data.frame(
+  ##   forecast_date = forecast.date,
+  ##   target = paste(1:42,' day ahead cum death',sep=''),
+  ##   location = NA,
+  ##   location_name = STATE_NAME,
+  ##   target_end_date = forecast.date+(1:42),
+  ##   type = 'point',
+  ##   quantile = NA,
+  ##   value = daily.points)
   
   # generate weekly forecast from daily forecast
   deathPreds.array.weekly = apply(deathPreds.array,c(1,3),function(x)
@@ -198,7 +198,7 @@ fips = fips_codes %>%
   rename(location = state_code, location_name = state_name) %>%
   unique()
 df.forecast = left_join(df.forecast, fips, by = "location_name") %>%
-  dplyr::select(forecast_date, target, location, location_name,
+  dplyr::select(forecast_date, target, location, #location_name,
                 target_end_date, type, quantile, value)
 
 

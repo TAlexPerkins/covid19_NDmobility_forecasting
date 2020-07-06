@@ -72,6 +72,17 @@ if(GO){
   deaths_df$count = c(deaths_df$count[1], diff(deaths_df$count))
   deaths_df$measure = "death_increase"
   deaths_df$measure_label = "Death_Increase"
+  if (STATE == "NJ") {
+      deaths_df[deaths_df$date=="2020-06-25",]$count = NA
+  } else if (STATE == "MA") {
+      deaths_df[deaths_df$date=="2020-06-01",]$count = NA
+  } else if (STATE == "MS") {
+      for (dddd in seq(as.Date("2020-06-18"),as.Date("2020-06-22"),"1 day")){
+          deaths_df[deaths_df$date==dddd,]$count = deaths_df[deaths_df$date=="2020-06-22",]$count/5
+      }
+  } else if (STATE == "TN") {
+      deaths_df[deaths_df$date=="2020-06-12",]$count = NA
+  }
   
   ## Positive incidence
   pos_df = subset(d, measure == "positive")
