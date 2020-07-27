@@ -4,7 +4,7 @@ library(foreach)
 library(mgcv)
 ## remotes::install_github("kjhealy/covdata")
 library(covdata)
-
+library(tidyverse)
 
 
 # load state population data <- Where is this file supposed to run from? code or data?
@@ -64,7 +64,8 @@ if(GO){
   pop = state_pops[state_pops[,1]==STATE,4]
   
   ## Format data to get incidence data
-  d = subset(d, !(measure %in% c("deaths_increase", "positive_increase", "negative_increase", "total_test_results_increase")))
+  d = subset(d, !(measure %in% c("deaths_increase", "positive_increase", "negative_increase",
+                                 "total_test_results_increase")))
   
   ## Deaths incidence
   deaths_df = subset(d, measure == "death")
@@ -116,13 +117,13 @@ if(GO){
     df$ttot[ddd] = ifelse(tot.temp < max(0,pos.temp), NA, death.temp)
     if(MOBILITY==1){
       df$mobility[ddd] =
-        mean(subset(a,transportation_type=='driving'&date==dd)$index,na.rm=T)
+        mean(subset(a,transportation_type=='driving'&date==dd)$score,na.rm=T)
     } else if(MOBILITY==2){
       df$mobility[ddd] =
-        mean(subset(a,transportation_type=='transit'&date==dd)$index,na.rm=T)
+        mean(subset(a,transportation_type=='transit'&date==dd)$score,na.rm=T)
     } else if(MOBILITY==3){
       df$mobility[ddd] =
-        mean(subset(a,transportation_type=='walking'&date==dd)$index,na.rm=T)
+        mean(subset(a,transportation_type=='walking'&date==dd)$score,na.rm=T)
     } else if(MOBILITY==4){
       df$mobility[ddd] = 100 +
         mean(subset(g,type=='grocery'&date==dd)$pct_diff,na.rm=T)
