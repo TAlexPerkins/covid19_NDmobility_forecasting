@@ -44,3 +44,7 @@ vignettes/*.pdf
 # Figure and tables folders
 figures/*
 tables/*
+
+# Emacs autosave files
+*~
+\#*\#
