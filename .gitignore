@@ -45,6 +45,15 @@ vignettes/*.pdf
 figures/*
 tables/*
 
+# unsaved files
+code/old/*
+plot_forecasts.R
+plot_states.R
+submit_forecasts.sh
+
+# json files
+*.json
+
 # Emacs autosave files
 *~
 \#*\#

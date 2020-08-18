@@ -1,10 +1,12 @@
 library(tidyverse)
-library(covdata)
+##library(covdata)
 
 ## read in states that have been processed
 state_pops = read.csv('../data/state_pops.csv',header=F)
 f = list.files('../output/')
+f = f[!grepl("probs",f)]
 state_list = unique(substr(f,17,18))
+load("../data/cov.RData")
 
 # loop through states and compile their results in the right format
 for(STATE in state_list){
@@ -21,6 +23,7 @@ for(STATE in state_list){
   f = list.files('../output/')
   f = f[substr(f,0,3)=='mod']
   f = f[grep(STATE,f)]
+  f = f[!grepl("probs",f)]
   load(paste('../output/',f[1],sep=''))
   # samples.list = list()
   # npi.mat = matrix(NA,nrow(df),length(f))
@@ -33,7 +36,12 @@ for(STATE in state_list){
     # samples.list[[ii]] = samples[,1:12]
     # print(median(samples[,14]))
     # npi.mat[,ii] = df$mobility
-    deathPreds.array[ii,,] = ifelse(is.na(deathPreds),0,deathPreds)
+    if (nrow(deathPreds)==nrow(deathPreds.array[ii,,])){
+        deathPreds.array[ii,,] = ifelse(is.na(deathPreds),0,deathPreds)
+    } else {
+        row.n <- nrow(deathPreds.array[ii,,])
+        deathPreds.array[ii,,] = ifelse(is.na(deathPreds[1:row.n,]),0,deathPreds[1:row.n,])
+    }
     # deviance[ii] = mean(-2*samples[,'Lposterior'])
   }
 
@@ -49,9 +57,9 @@ for(STATE in state_list){
   forecast.day = as.POSIXlt(forecast.date)$wday
 
   # get deaths in NYT data
-  state_data = nytcovstate %>%
-      filter(state == STATE_NAME)
-  state_deaths = max(state_data$deaths)
+  state_data = covus %>%
+      filter(state == STATE,measure == "death")
+  state_deaths = max(state_data$count)
   state_date = max(state_data$date)
     
   # take random draws from mean to obtain posterior predictions

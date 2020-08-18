@@ -1,13 +1,15 @@
 library(stringr)
 library(tidyverse)
-library(covdata)
+## library(covdata)
 
 ## read in list of states with model fits
 state_pops = read.csv('../data/state_pops.csv',header=F)
 f = list.files('../output/')
+f = f[!grepl("probs",f)]
 load(paste('../output/',f[1],sep=''))
 state_list = unique(substr(f,17,18))
 n.metrics <- max(as.numeric(str_extract_all(f,"[0-9]+"))) 
+load("../data/cov.RData")
 
 # create placeholder for total deaths
 total.deaths = 0
@@ -25,6 +27,7 @@ for(STATE in state_list){
   f = list.files('../output/')
   f = f[substr(f,0,3)=='mod']
   f = f[grep(STATE,f)]
+  f = f[!grepl("probs",f)]
   load(paste('../output/',f[1],sep=''))
   samples.list = list()
   # npi.mat = matrix(NA,nrow(df),length(f))
@@ -36,9 +39,14 @@ for(STATE in state_list){
     # samples.list[[ii]] = samples[,1:12]
     # print(median(samples[,14]))
     # npi.mat[,ii] = df$mobility
-    
-    deathPreds.array[ii,,] = 
-      deathPreds.array[ii,,] + ifelse(is.na(deathPreds),0,deathPreds)
+    if (nrow(deathPreds)==nrow(deathPreds.array[ii,,])){
+        deathPreds.array[ii,,] = 
+            deathPreds.array[ii,,] + ifelse(is.na(deathPreds),0,deathPreds)
+    } else {
+        row.n <- nrow(deathPreds.array[ii,,])
+        deathPreds.array[ii,,] = 
+            deathPreds.array[ii,,] + ifelse(is.na(deathPreds[1:row.n,]),0,deathPreds[1:row.n,])
+    }
     # deviance[ii] = mean(-2*samples[,'Lposterior'])
   }
 
@@ -48,9 +56,9 @@ for(STATE in state_list){
       which(!is.na(state_pops[state_pops[,1]==STATE,2:3]))][1]))
 
   # get deaths in NYT data
-  state_data = nytcovstate %>%
-      filter(state == STATE_NAME)
-  state_deaths = max(state_data$deaths)
+  state_data = covus %>%
+      filter(state == STATE,measure == "death")
+  state_deaths = max(state_data$count)
   state_date = max(state_data$date)
 
   total.deaths <- total.deaths + state_deaths

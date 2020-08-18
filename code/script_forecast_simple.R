@@ -3,15 +3,17 @@ library(BayesianTools)
 library(foreach)
 library(mgcv)
 ## remotes::install_github("kjhealy/covdata")
-library(covdata)
+## library(covdata)
 library(tidyverse)
-
+library(zoo)
 
 # load state population data <- Where is this file supposed to run from? code or data?
 state_pops = read.csv('../data/state_pops.csv',header=F,  stringsAsFactors = F)
 state_pops = state_pops[which(rowSums(is.na(state_pops[,2:3]))<2),]
 ## state_pops[which(state_pops$V2 == 'New Jersy'),]$V2 = 'New Jersey'
 ## state_pops[which(state_pops$V3 == 'New Jersy'),]$V3 = 'New Jersey'
+load("../data/cov.RData")
+
 
 # models that need to be run
 models = expand.grid(
@@ -34,11 +36,13 @@ print(MOBILITY)
 d = subset(covus,state==STATE)
 
 if(MOBILITY%in%(1:3)){
+  load("../data/apple.RData")
   a = subset(
     apple_mobility,
     sub_region==as.character(state_pops[which(state_pops[,1]==STATE),2]))
 }
 if(MOBILITY%in%(4:9)){
+  load("../data/google.RData")
   g = subset(
     google_mobility,
     sub_region_1==as.character(state_pops[which(state_pops[,1]==STATE),3]))
@@ -72,7 +76,7 @@ if(GO){
   deaths_df = deaths_df[order(deaths_df$date),]
   deaths_df$count = c(deaths_df$count[1], diff(deaths_df$count))
   deaths_df$measure = "death_increase"
-  deaths_df$measure_label = "Death_Increase"
+  ##deaths_df$measure_label = "Death_Increase"
   if (STATE == "NJ") {
       deaths_df[deaths_df$date=="2020-06-25",]$count = NA
   }
@@ -82,7 +86,7 @@ if(GO){
   pos_df = pos_df[order(pos_df$date),]
   pos_df$count = c(pos_df$count[1], diff(pos_df$count))
   pos_df$measure = "positive_increase"
-  pos_df$measure_label = "Positive_Increase"
+  ##pos_df$measure_label = "Positive_Increase"
   
   
   ## Positive incidence
@@ -90,12 +94,12 @@ if(GO){
   neg_df = neg_df[order(neg_df$date),]
   neg_df$count = c(neg_df$count[1], diff(neg_df$count))
   neg_df$measure = "negative_increase"
-  neg_df$measure_label = "Negative_Increase"
+  ##neg_df$measure_label = "Negative_Increase"
   
   total_df = pos_df
   total_df$count = pos_df$count + neg_df$count
   total_df$measure = "total_test_results_increase"
-  total_df$measure_label = "Total_Tests_Increase"
+  ##total_df$measure_label = "Total_Tests_Increase"
   
   d = rbind(d, deaths_df, pos_df, total_df)
   
@@ -107,11 +111,12 @@ if(GO){
   df$deaths = rep(NA, nrow(df))
   df$tpos = rep(NA, nrow(df))
   df$ttot = rep(NA, nrow(df))
+  df$mobility = rep(NA, nrow(df))
   for(dd in unique(d$date)){
     ddd = which(df$date==dd)
-    death.temp = subset(d, measure == 'death_increase' & date == dd)$count
-    pos.temp = subset(d, measure == 'positive_increase' & date == dd)$count
-    tot.temp = subset(d, measure=='total_test_results_increase'&date==dd)$count
+    death.temp = max(-1,subset(d, measure == 'death_increase' & date == dd)$count)
+    pos.temp = max(-1,subset(d, measure == 'positive_increase' & date == dd)$count)
+    tot.temp = max(-1,subset(d, measure=='total_test_results_increase'&date==dd)$count)
     df$deaths[ddd] = ifelse(death.temp < 0, NA, death.temp)
     df$tpos[ddd] = ifelse(pos.temp < 0, NA, death.temp)
     df$ttot[ddd] = ifelse(tot.temp < max(0,pos.temp), NA, death.temp)
@@ -164,9 +169,12 @@ if(GO){
   
   
   
-  # replace mobility data with GAM fits
+  ## generate GAM fits
+  temp.mob <- rollmean(df$mobility,k=7,fill=df$mobility[1],align="right")
+  df$mobility <- temp.mob
+  rm(temp.mob)
   gam.fit = gam(mobility ~ s(doy), data = df)
-  df$mobility = predict(gam.fit,newdata=data.frame(doy=1:(max(df$doy))))
+  ## df$mobility = predict(gam.fit,newdata=data.frame(doy=1:(max(df$doy))))
   
   
   
@@ -210,7 +218,7 @@ if(GO){
     test.tim = exp(par[12])
     
     # adjust mobility predictor
-    npi = pmin(1, pmax(0, 1 - npi.mag * (1 - npi.ref)))
+    npi = exp(npi.mag*(npi.ref-1))
     
     # specify secondary infection distribution
     R0 = R0.mag * dpois(1:21,R0.tim) / sum(dpois(1:21,R0.tim))
@@ -282,14 +290,12 @@ if(GO){
   t = df$doy
   
   # incorporate mobility data
-  npi.ref = df$mobility
-  npi.ref = ifelse(
-    predict(gam.fit,newdata=data.frame(doy=t)) < max(df$mobility,na.rm=T),
-    predict(gam.fit,newdata=data.frame(doy=t)),
-    max(df$mobility,na.rm=T))
+  ## npi.ref = df$mobility
+  npi.ref = predict(gam.fit,newdata=data.frame(doy=t))
   npi.ref = npi.ref / npi.ref[1]
-  
-  
+  if (mobility_types[MOBILITY] == "residential") {
+      npi.ref <- 2 - npi.ref
+  }
   
   # calculate LL at all initial value combinations
   for(ii in 1:nrow(pars)){
@@ -327,7 +333,7 @@ if(GO){
     test.tim = exp(par[12])
     
     # adjust mobility predictor
-    npi = pmin(1, pmax(0, 1 - npi.mag * (1 - npi.ref)))
+    npi = exp(npi.mag*(npi.ref-1))
     
     # specify secondary infection distribution
     R0 = R0.mag * dpois(1:21,R0.tim) / sum(dpois(1:21,R0.tim))
@@ -400,11 +406,11 @@ if(GO){
   t = c(df$doy,max(df$doy)+(1:60))
   
   # incorporate mobility data
-  npi.ref = ifelse(
-    predict(gam.fit,newdata=data.frame(doy=t)) < max(df$mobility,na.rm=T),
-    predict(gam.fit,newdata=data.frame(doy=t)),
-    max(df$mobility,na.rm=T))
+  npi.ref = predict(gam.fit,newdata=data.frame(doy=t))
   npi.ref = npi.ref / npi.ref[1]
+  if (mobility_types[MOBILITY] == "residential") {
+      npi.ref <- 2 - npi.ref
+  }
   
   # get model predictions
   deathPreds = foreach(ii = 1:nrow(samples),.combine='cbind') %do% {
