@@ -1,7 +1,8 @@
 library(tidyverse)
 library(lubridate)
 
-
+state_pops = read.csv('../data/state_pops.csv',header=F,  stringsAsFactors = F)
+state_pops = state_pops[which(rowSums(is.na(state_pops[,2:3]))<2),]
 state.abb <- state_pops[,1]
 state.name <- state_pops[,5]
 tracking_temp <- janitor::clean_names(read_csv("https://covidtracking.com/api/v1/states/daily.csv")) %>%
