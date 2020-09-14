@@ -6,16 +6,18 @@ library(tidyverse)
 state_pops = read.csv('../data/state_pops.csv',header=F)
 f = list.files('../output/')
 f = f[!grepl("probs",f)]
+f = f[!grepl("training",f)]
+f = f[!grepl("weights",f)]
 load(paste('../output/',f[1],sep=''))
 state_list = unique(substr(f,17,18))
-n.metrics <- max(as.numeric(str_extract_all(f,"[0-9]+"))) 
+## n.metrics <- max(as.numeric(str_extract_all(f,"[0-9]+"))) 
 load("../data/cov.RData")
 
 # create placeholder for total deaths
 total.deaths = 0
 
 # set up 
-deathPreds.array = array(0,c(n.metrics,nrow(deathPreds),ncol(deathPreds)))
+deathPreds.array = array(0,c(nrow(deathPreds),ncol(deathPreds)))
 
 ## date processing
 forecast.date = Sys.Date()
@@ -28,24 +30,26 @@ for(STATE in state_list){
   f = f[substr(f,0,3)=='mod']
   f = f[grep(STATE,f)]
   f = f[!grepl("probs",f)]
+  f = f[!grepl("training",f)]
   load(paste('../output/',f[1],sep=''))
+  load(paste0("../output/weights_",STATE,".RData"))
+  if (length(weights) != length(f)) print("ERROR in weight!!!")
   samples.list = list()
   # npi.mat = matrix(NA,nrow(df),length(f))
   # deathPreds.array = array(NA,c(length(f),nrow(deathPreds),ncol(deathPreds)))
-  deviance = numeric()
   print(STATE)
   for(ii in 1:length(f)){
     load(paste('../output/',f[ii],sep=''))
     # samples.list[[ii]] = samples[,1:12]
     # print(median(samples[,14]))
     # npi.mat[,ii] = df$mobility
-    if (nrow(deathPreds)==nrow(deathPreds.array[ii,,])){
-        deathPreds.array[ii,,] = 
-            deathPreds.array[ii,,] + ifelse(is.na(deathPreds),0,deathPreds)
+    if (nrow(deathPreds)==nrow(deathPreds.array)){
+        deathPreds.array = 
+            deathPreds.array + as.numeric(weights[ii])*ifelse(is.na(deathPreds),0,deathPreds)
     } else {
-        row.n <- nrow(deathPreds.array[ii,,])
-        deathPreds.array[ii,,] = 
-            deathPreds.array[ii,,] + ifelse(is.na(deathPreds[1:row.n,]),0,deathPreds[1:row.n,])
+        row.n <- nrow(deathPreds.array)
+        deathPreds.array = 
+            deathPreds.array + as.numeric(weights[ii])*ifelse(is.na(deathPreds[1:row.n,]),0,deathPreds[1:row.n,])
     }
     # deviance[ii] = mean(-2*samples[,'Lposterior'])
   }
@@ -72,11 +76,10 @@ deathPreds.array = array(
   rpois(prod(dim(deathPreds.array)),deathPreds.array),
   dim(deathPreds.array))
 deathPredsCum.array = deathPreds.array
-for(ii in 1:dim(deathPredsCum.array)[1]){
-  for(jj in 1:dim(deathPredsCum.array)[3]){
-    deathPredsCum.array[ii,,jj] = cumsum(deathPredsCum.array[ii,,jj]) - sum(deathPredsCum.array[ii,1:(nrow(df) - as.numeric(max(df$date)-state_date)),jj]) + total.deaths
-  }
+for(jj in 1:dim(deathPredsCum.array)[2]){
+    deathPredsCum.array[,jj] = cumsum(deathPredsCum.array[,jj]) - sum(deathPredsCum.array[1:(nrow(df) - as.numeric(max(df$date)-state_date)),jj]) + total.deaths
 }
+
 
 quantiles = c(0.01,0.025,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.975,0.99)
 
@@ -127,9 +130,9 @@ quantiles = c(0.01,0.025,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0
 ##   value = daily.points)
 
 
-deathPreds.array.weekly = apply(deathPreds.array,c(1,3),function(x)
+deathPreds.array.weekly = apply(deathPreds.array,c(2),function(x)
   aggregate(x[forecast.row+(1:42)-(forecast.day+1)%%7],by=list(rep(1:6,each=7)),FUN=sum)[,2])
-deathPredsCum.array.weekly = apply(deathPredsCum.array,c(1,3),function(x)
+deathPredsCum.array.weekly = apply(deathPredsCum.array,c(2),function(x)
   x[forecast.row+7*(1:6)-(forecast.day+1)%%7])
 
 

@@ -7,6 +7,10 @@ library(mgcv)
 library(tidyverse)
 library(zoo)
 
+## define length of training data set (days)
+training.length <- 4*7
+current.date <- Sys.Date()
+
 # load state population data <- Where is this file supposed to run from? code or data?
 state_pops = read.csv('../data/state_pops.csv',header=F,  stringsAsFactors = F)
 state_pops = state_pops[which(rowSums(is.na(state_pops[,2:3]))<2),]
@@ -33,19 +37,21 @@ print(STATE)
 print(MOBILITY)
 
 # subset to the desired state
-d = subset(covus,state==STATE)
+d = subset(covus,state==STATE) %>% filter(date <= current.date - training.length)
 
 if(MOBILITY%in%(1:3)){
   load("../data/apple.RData")
   a = subset(
     apple_mobility,
-    sub_region==as.character(state_pops[which(state_pops[,1]==STATE),2]))
+    sub_region==as.character(state_pops[which(state_pops[,1]==STATE),2])) %>%
+      filter(date <= current.date - training.length)
 }
 if(MOBILITY%in%(4:9)){
   load("../data/google.RData")
   g = subset(
     google_mobility,
-    sub_region_1==as.character(state_pops[which(state_pops[,1]==STATE),3]))
+    sub_region_1==as.character(state_pops[which(state_pops[,1]==STATE),3])) %>%
+      filter(date <= current.date - training.length)
 }
 
 if(MOBILITY %in% 1:3){
@@ -424,7 +430,7 @@ if(GO){
   
   # save output
   save(par,samples,t,deathPreds,df,LL,
-       file=paste('../output/model_posterior_',STATE,'_',MOBILITY,'.RData',sep=''))
+       file=paste('../output/model_posterior_training_',STATE,'_',MOBILITY,'.RData',sep=''))
   
   
   # save(par,samples,t,deathPreds,df,LL,
