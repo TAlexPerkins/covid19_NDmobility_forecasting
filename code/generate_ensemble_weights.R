@@ -101,40 +101,38 @@ for(STATE in state_list){
   ##                   as.numeric(weekly.mean),as.numeric(weekly.sd),log=T),
   ##             dim=dim(weekly.sd))
 
+  ## if (ncol(weekly.mean)>1){
+  ##     length.sweep <- 5
+  ##     weight.sweep <- expand.grid(as.data.frame(matrix(rep(0:length.sweep,
+  ##                                                          ncol(weekly.mean)),
+  ##                                                      ncol=ncol(weekly.mean))))
+  ##     weight.sweep <- weight.sweep[rowSums(weight.sweep) == length.sweep,]
+  ##     weight.sweep <- weight.sweep/length.sweep
+  ##     NLLs <- vector(mode="numeric",length=nrow(weight.sweep))
+  ##     for (ii in 1:nrow(weight.sweep)) {
+  ##         NLLs[ii] <- weighted.loglikelihood(weight.sweep[ii,],weekly.mean,weekly.sd,target.data)
+  ##     }
+  ##     weights <- weight.sweep[which.min(NLLs),]
+  ## } else if (ncol(weekly.mean) == 1) {
+  ##     weights <- 1
+  ## } else {
+  ##     print("ERROR! Wrong length")
+  ## }
+
   if (ncol(weekly.mean)>1){
-      length.sweep <- 5
-      weight.sweep <- expand.grid(as.data.frame(matrix(rep(0:length.sweep,
-                                                           ncol(weekly.mean)),
-                                                       ncol=ncol(weekly.mean))))
-      weight.sweep <- weight.sweep[rowSums(weight.sweep) == length.sweep,]
-      weight.sweep <- weight.sweep/length.sweep
-      NLLs <- vector(mode="numeric",length=nrow(weight.sweep))
-      for (ii in 1:nrow(weight.sweep)) {
-          NLLs[ii] <- weighted.loglikelihood(weight.sweep[ii,],weekly.mean,weekly.sd,target.data)
-      }
-      weights <- weight.sweep[which.min(NLLs),]
-  } else if (ncol(weekly.mean) == 1) {
-      weights <- 1
+      weights.init <- rep(1,ncol(weekly.mean))/ncol(weekly.mean)
+      weights.init <- weights.init/sum(weights.init)
+      weights.out <- optim(par=weights.init,
+                           fn=function(par) {
+                               x=par/sum(par)
+                               min(1e6,weighted.loglikelihood(x,weekly.mean,weekly.sd,target.data))
+                           },
+                           method="L-BFGS-B",lower=0)
+      weights <- weights.out$par/sum(weights.out$par)
   } else {
-      print("ERROR! Wrong length")
+      weights <- 1
   }
 
   save(weights,file=paste0("../output/weights_",STATE,".RData"))
   print(STATE)
-
-  ## Sweep seems to be better if a single model is preferred. Maybe just check each single model, and then check if any smaller than optim?
-  ## if (ncol(weekly.mean)>1){
-  ##     weights.init <- rep(1,ncol(weekly.mean))/ncol(weekly.mean)
-  ##     weights.init <- weights.init/sum(weights.init)
-  ##     weights.out <- optim(par=weights.init,
-  ##                          fn=function(par) {
-  ##                              x=par/sum(par)
-  ##                              min(1e6,weighted.loglikelihood(x,weekly.mean,weekly.sd,target.data))
-  ##                          },
-  ##                          method="L-BFGS-B",lower=0)
-  ##     weights <- weights.out$par/sum(weights.out$par)
-  ## } else {
-  ##     weights <- 1
-  ## }
-
 }

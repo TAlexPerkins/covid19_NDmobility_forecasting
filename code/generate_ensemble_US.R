@@ -33,6 +33,7 @@ for(STATE in state_list){
   f = f[!grepl("training",f)]
   load(paste('../output/',f[1],sep=''))
   load(paste0("../output/weights_",STATE,".RData"))
+  weights <- weights[weights > 0.0]
   if (length(weights) != length(f)) print("ERROR in weight!!!")
   samples.list = list()
   # npi.mat = matrix(NA,nrow(df),length(f))
