@@ -70,6 +70,11 @@ if(MOBILITY %in% 4:9){
   }
 }
 
+if (length(list.files("../output/",
+               paste0("model_posterior_training_",STATE,"_",MOBILITY,".RData")))) {
+    GO = F
+}
+
 if(GO){
   pop = state_pops[state_pops[,1]==STATE,4]
   
