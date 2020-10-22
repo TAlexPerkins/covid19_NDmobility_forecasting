@@ -73,6 +73,18 @@ for(STATE in state_list){
   deathPreds.array = array(
     rpois(prod(dim(deathPreds.array)),deathPreds.array),
     dim(deathPreds.array))
+
+  ## shuffle runs so get random combinations when taking weighted sum
+  n.runs <- dim(deathPreds.array)[3]
+  n.models <- length(weights)
+  if (n.models > 1) {
+      for (ii in 2:n.models) {
+          reordering <- sample(n.runs)
+          deathPreds.array[ii,,] <- deathPreds.array[ii,,reordering]
+      }
+  }
+    
+  ## obtain daily cumulative, adjusted to data
   deathPredsCum.array = deathPreds.array
   for(ii in 1:dim(deathPredsCum.array)[1]){
     for(jj in 1:dim(deathPredsCum.array)[3]){
@@ -134,7 +146,7 @@ for(STATE in state_list){
   ##   type = 'point',
   ##   quantile = NA,
   ##   value = daily.points)
-  
+      
   # generate weekly forecast from daily forecast
   deathPreds.array.weekly.temp = apply(deathPreds.array,c(1,3),function(x)
     aggregate(x[forecast.row+(1:42)-(forecast.day+1)%%7],by=list(rep(1:6,each=7)),FUN=sum)[,2])
