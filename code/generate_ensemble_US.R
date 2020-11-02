@@ -36,14 +36,14 @@ for(STATE in state_list){
   weights <- weights[weights > 0.0]
   if (length(weights) != length(f)) print("ERROR in weight!!!")
   samples.list = list()
-  # npi.mat = matrix(NA,nrow(df),length(f))
-  # deathPreds.array = array(NA,c(length(f),nrow(deathPreds),ncol(deathPreds)))
   print(STATE)
+  
   for(ii in 1:length(f)){
     load(paste('../output/',f[ii],sep=''))
-    # samples.list[[ii]] = samples[,1:12]
-    # print(median(samples[,14]))
-    # npi.mat[,ii] = df$mobility
+    if (ii > 1) {
+        reordering <- sample(dim(deathPreds)[2])
+        deathPreds <- deathPreds[,reordering]
+    }
     if (nrow(deathPreds)==nrow(deathPreds.array)){
         deathPreds.array = 
             deathPreds.array + as.numeric(weights[ii])*ifelse(is.na(deathPreds),0,deathPreds)
@@ -73,14 +73,16 @@ t = df$doy
 
 # wts = exp(-(deviance-min(deviance))) / sum(exp(-(deviance-min(deviance))))
 
+## take random draws from mean to obtain posterior predictions
 deathPreds.array = array(
   rpois(prod(dim(deathPreds.array)),deathPreds.array),
   dim(deathPreds.array))
+
+## obtain daily cumulative, adjusted to data
 deathPredsCum.array = deathPreds.array
 for(jj in 1:dim(deathPredsCum.array)[2]){
     deathPredsCum.array[,jj] = cumsum(deathPredsCum.array[,jj]) - sum(deathPredsCum.array[1:(nrow(df) - as.numeric(max(df$date)-state_date)),jj]) + total.deaths
 }
-
 
 quantiles = c(0.01,0.025,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.975,0.99)
 
