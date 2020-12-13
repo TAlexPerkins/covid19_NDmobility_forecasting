@@ -107,9 +107,13 @@ if (run.this.model) {
         total_df$measure = "total_test_results_increase"
         ##total_df$measure_label = "Total_Tests_Increase"
         
-        d = rbind(d, deaths_df, pos_df, total_df)
+        ## Hospitalization incidence
+        hosp_df = covhosp %>%
+            filter(state==STATE) %>%
+            arrange(date)
         
-        
+        d = rbind(d, deaths_df, pos_df, total_df,hosp_df)
+                
         ## load and format data
         df = data.frame(
             date = seq(as.Date('20200101','%Y%m%d'),max(covus$date),1),
@@ -117,15 +121,18 @@ if (run.this.model) {
         df$deaths = rep(NA, nrow(df))
         df$tpos = rep(NA, nrow(df))
         df$ttot = rep(NA, nrow(df))
+        df$hosps = rep(NA, nrow(df))
         df$mobility = rep(NA, nrow(df))
         for(dd in unique(d$date)){
             ddd = which(df$date==dd)
             death.temp = max(-1,subset(d, measure == 'death_increase' & date == dd)$count)
             pos.temp = max(-1,subset(d, measure == 'positive_increase' & date == dd)$count)
             tot.temp = max(-1,subset(d, measure=='total_test_results_increase'&date==dd)$count)
+            hosp.temp = max(-1,subset(d, measure=='incident_hospitalizations'&date==dd)$count)
             df$deaths[ddd] = ifelse(death.temp < 0, NA, death.temp)
             df$tpos[ddd] = ifelse(pos.temp < 0, NA, pos.temp)
             df$ttot[ddd] = ifelse(tot.temp < max(0,pos.temp), NA, tot.temp)
+            df$hosps[ddd] = ifelse(hosp.temp < 0, NA, hosp.temp)
             if(MOBILITY==1){
                 df$mobility[ddd] =
                     mean(subset(a,transportation_type=='driving'&date==dd)$score,na.rm=T)
@@ -200,12 +207,15 @@ if (run.this.model) {
         symp.mag = log(0.6 / (1 - 0.6))
         symp.tim = log(c(4,5.2,8))
         test.tim = log(c(2,6.05,10))
+        hosp.mag = log(0.035)
+        hosp.tim = log(7)
         
         ## set up parameter combinations
         pars = expand.grid(
             imp.mag=imp.mag,imp.mean=imp.mean,imp.sd=imp.sd,R0.mag=R0.mag,
             npi.mag=npi.mag,dead.mag=dead.mag,dead.tim=dead.tim,ratio.int=ratio.int,
-            R0.tim=R0.tim,symp.mag=symp.mag,symp.tim=symp.tim,test.tim=test.tim)
+            R0.tim=R0.tim,symp.mag=symp.mag,symp.tim=symp.tim,test.tim=test.tim,
+            hosp.mag=hosp.mag,hosp.tim=hosp.tim)
         pars$LL = NA
         
         
@@ -225,6 +235,8 @@ if (run.this.model) {
             symp.mag = exp(par[10]) / (exp(par[10]) + 1)
             symp.tim = exp(par[11])
             test.tim = exp(par[12])
+            hosp.mag = exp(par[13])
+            hosp.tim = exp(par[14])
             
             ## adjust mobility predictor
             npi = npi.ref^npi.mag
@@ -267,16 +279,22 @@ if (run.this.model) {
                     prop.symp.test[1:min(length(prop.symp.test),max(t)-tt)]
             }
             
-            ## specify delay between symptom onset and death
+            ## specify delay between symptom onset and death / hosp
             prop.symp.dead = dead.mag * dpois(1:42,dead.tim) / sum(dpois(1:42,dead.tim))
+            prop.symp.hosp = hosp.mag * dpois(1:42,hosp.tim) / sum(dpois(1:42,hosp.tim))
             
-            ## simulate symptomatic infections that result in death
+            ## simulate symptomatic infections that result in death / hosp
             symp.dead = rep(0,length(t))
+            symp.hosp = rep(0,length(t))
             for(tt in 1:(length(t)-1)){
                 symp.dead[tt+(1:min(length(prop.symp.dead),max(t)-tt))] =
                     symp.dead[tt+(1:min(length(prop.symp.dead),max(t)-tt))] +
                     symp[tt] *
                     prop.symp.dead[1:min(length(prop.symp.dead),max(t)-tt)]
+                symp.hosp[tt+(1:min(length(prop.symp.hosp),max(t)-tt))] =
+                    symp.hosp[tt+(1:min(length(prop.symp.hosp),max(t)-tt))] +
+                    symp[tt] *
+                    prop.symp.hosp[1:min(length(prop.symp.hosp),max(t)-tt)]
             }
             
             ## likelihood contribution from testing
@@ -288,7 +306,10 @@ if (run.this.model) {
             
             ## likelihood contribution from deaths
             LL = LL + sum(dpois(df$deaths,pmax(1e-10,symp.dead),log=T),na.rm=T)
-            
+
+            ## likelihood contribution from hosps
+            LL = LL + sum(dpois(df$hosps,pmax(1e-10,symp.hosp),log=T),na.rm=T)
+
             ## return log likelihood
             return(LL)
         }
@@ -308,9 +329,9 @@ if (run.this.model) {
         
         ## calculate LL at all initial value combinations
         for(ii in 1:nrow(pars)){
-            pars$LL[ii] = LL(as.numeric(pars[ii,1:12]), browse = F)
+            pars$LL[ii] = LL(as.numeric(pars[ii,-ncol(pars)]), browse = F)
         }
-        par = as.numeric(pars[which.max(pars$LL),1:12])
+        par = as.numeric(pars[which.max(pars$LL),-ncol(pars)])
         
         ## specify parameter ranges as factor of two around MLE
         lower = ifelse(par > 0, 1/2 * par, 2 * par)
@@ -340,6 +361,8 @@ if (run.this.model) {
             symp.mag = exp(par[10]) / (exp(par[10]) + 1)
             symp.tim = exp(par[11])
             test.tim = exp(par[12])
+            hosp.mag = exp(par[13])
+            hosp.tim = exp(par[14])
             
             ## adjust mobility predictor
             npi = npi.ref^npi.mag
@@ -382,18 +405,25 @@ if (run.this.model) {
                     prop.symp.test[1:min(length(prop.symp.test),max(t)-tt)]
             }
             
-            ## specify delay between symptom onset and death
+            ## specify delay between symptom onset and death / hosp
             prop.symp.dead = dead.mag * dpois(1:42,dead.tim) / sum(dpois(1:42,dead.tim))
-            
+            prop.symp.hosp = hosp.mag * dpois(1:42,hosp.tim) / sum(dpois(1:42,hosp.tim))
+
             ## simulate symptomatic infections that seek testing
             symp.dead = rep(0,length(t))
+            symp.hosp = rep(0,length(t))
             for(tt in 1:(length(t)-1)){
                 symp.dead[tt+(1:min(length(prop.symp.dead),max(t)-tt))] =
                     symp.dead[tt+(1:min(length(prop.symp.dead),max(t)-tt))] +
                     symp[tt] *
                     prop.symp.dead[1:min(length(prop.symp.dead),max(t)-tt)]
+                symp.hosp[tt+(1:min(length(prop.symp.hosp),max(t)-tt))] =
+                    symp.hosp[tt+(1:min(length(prop.symp.hosp),max(t)-tt))] +
+                    symp[tt] *
+                    prop.symp.hosp[1:min(length(prop.symp.hosp),max(t)-tt)]
             }
             symp.dead = pmax(1e-10,symp.dead)
+            symp.hosp = pmax(1e-10,symp.hosp)
             
             ## likelihood contribution from testing
             ratio = exp(ratio.int) ## + ratio.lin * t + ratio.qua * (t^2))
@@ -404,6 +434,8 @@ if (run.this.model) {
             ## return output
             if(toReturn=='deaths'){
                 return(symp.dead)
+            } else if (toReturn == "hospitalizations") {
+                return(symp.hosp)
             } else {
                 return(prob)
             }
@@ -425,17 +457,17 @@ if (run.this.model) {
         deathPreds = foreach(ii = 1:nrow(samples),.combine='cbind') %do% {
             postPred(samples[ii,1:12],t,'deaths')
         }
-        
+
+        ## hospitalizations
+        ## deathPreds = foreach(ii = 1:nrow(samples),.combine='cbind') %do% {
+        ##     postPred(samples[ii,1:12],t,'hospitalizations')
+        ## }
         
         
         ## save output
         save(par,samples,t,deathPreds,df,LL,
              file=paste('../output/model_posterior_',STATE,'_',MOBILITY,'.RData',sep=''))
-        
-        
-        ## save(par,samples,t,deathPreds,df,LL,
-        ##      file=paste('../test/model_posterior_',STATE,'_',MOBILITY,'.RData',sep=''))
-        
+               
         rm(GO)
     }
 }
