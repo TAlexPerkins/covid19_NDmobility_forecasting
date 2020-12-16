@@ -70,6 +70,12 @@ if (run.this.model) {
         }
     }
 
+    if (length(list.files("../output/",
+                          paste0("model_posterior_",STATE,"_",MOBILITY,".RData")))) {
+        GO = F
+    }
+
+
     if(GO){
         pop = state_pops[state_pops[,1]==STATE,4]
         
